@@ -20,6 +20,15 @@ jobs:
           php-version: '8.2'
           extensions: mbstring, bcmath, intl, pdo, mysqli
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install PHP dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader
+
       - name: Set up Composer
         run: |
           curl -sS https://getcomposer.org/installer | php
@@ -29,6 +38,7 @@ jobs:
       - name: Install dependencies
         run: |
           composer install --no-dev --optimize-autoloader
+          composer require laravel/ui 
           php artisan ui bootstrap --auth
           php artisan config:cache
           php artisan route:cache
