@@ -8,7 +8,6 @@ Route::get('/', function() {
     return redirect()->route('home');
 });
 
-// Route::get('/datasiswa', [HomeController::class, 'index'])->name('home');
 Route::get('/detail/{id}', [HomeController::class, 'show'])->name('detail');
 
 Route::get('/create', [HomeController::class, 'create'])->name('create');
@@ -20,4 +19,4 @@ Route::post('/update/{id}', [HomeController::class, 'update'])->name('update');
 Route::get('/delete/{id}', [HomeController::class, 'destroy'])->name('delete');
 Auth::routes(['verify' => true]);
 
-Route::get('/dashboard', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+// Route::get('/dashboard', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
