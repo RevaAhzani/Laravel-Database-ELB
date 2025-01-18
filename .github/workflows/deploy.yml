@@ -1,4 +1,4 @@
-name: Laravel Database CI/CD
+name: Laravel Database CI/CD ELB
 
 on:
   push:
