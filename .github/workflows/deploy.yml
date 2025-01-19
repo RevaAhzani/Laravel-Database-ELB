@@ -1,4 +1,4 @@
-name: Laravel Database CI/CD
+name: Laravel Database CI/CD ELB
 
 on:
   push:
@@ -54,7 +54,7 @@ jobs:
 
       - name: Build application (create zip)
         run: |
-          zip -r laravelpackCICD.zip . -x "node_modules/*" ".git/*" ".github/*"
+          zip -r laravelpackCICD.zip . -x "node_modules/*" ".git/*" ".github/*" "*.env"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
