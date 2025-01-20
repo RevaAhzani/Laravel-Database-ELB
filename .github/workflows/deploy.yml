@@ -40,7 +40,7 @@ jobs:
 
       # 6. Build Front-End Assets
       - name: Build Front-End Assets
-        run: npm run dev
+        run: npm run build
 
       # 7. Set permissions for Laravel storage and cache
       - name: Set Laravel permissions
