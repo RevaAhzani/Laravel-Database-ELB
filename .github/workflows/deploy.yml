@@ -1,4 +1,4 @@
-name: Laravel Database CI/CD ELB
+name: Laravel Database CI/CD
 
 on:
   push:
@@ -10,84 +10,83 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # 1. Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # Setup PHP with necessary extensions
+      # 2. Setup PHP with necessary extensions
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           extensions: mbstring, bcmath, intl, pdo, mysqli
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install PHP dependencies
-        run: |
-          composer install --no-dev --optimize-autoloader
-
-      - name: Set up Composer
-        run: |
-          curl -sS https://getcomposer.org/installer | php
-          sudo mv composer.phar /usr/local/bin/composer
-
-      # Install dependencies and optimize Laravel application
+      # 3. Install Composer dependencies
       - name: Install dependencies
         run: |
+          composer clear-cache
           composer install --no-dev --optimize-autoloader
-          composer require laravel/ui 
-          php artisan ui bootstrap --auth
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
+          composer dump-autoload --optimize
 
-      - name: Cache vendor directory
-        uses: actions/cache@v3
+      # 4. Setup Node.js for front-end assets
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          path: vendor
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
+          node-version: '16'
 
-      - name: Build application (create zip)
+      # 5. Install Node.js dependencies
+      - name: Install Node.js dependencies
+        run: npm install
+
+      # 6. Build Front-End Assets
+      - name: Build Front-End Assets
+        run: npm run build
+
+      # 7. Set permissions for Laravel storage and cache
+      - name: Set Laravel permissions
         run: |
-          zip -r laravelpackCICD.zip . -x "node_modules/*" ".git/*" "storage/logs/*"
+          chmod -R 775 storage bootstrap/cache
 
+      # 8. Zip the Laravel project
+      - name: Zip project
+        run: zip -r laravel.zip . -x "node_modules/*" "storage/logs/*" ".git/*" 
+
+      # 9. Upload build artifacts to GitHub Actions
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: laravel-db-elb
-          path: laravelpackCICD.zip
-
-      - name: Configure AWS CLI
-        run: |
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure set aws_session_token ${{ secrets.AWS_SESSION_TOKEN }}
-          aws configure set region ${{ secrets.AWS_REGION }}
-
-      - name: Upload to S3
-        run: |
-          aws s3 cp laravelpackCICD.zip s3://${{ secrets.S3_BUCKET_NAME }}/laravelpackCICD.zip
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          name: laravel
+          path: laravel.zip
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download build artifact
+      # 1. Download build artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v3
         with:
-          name: laravel-db-elb
+          name: laravel
 
+      # 2. Configure AWS CLI
+      - name: Configure AWS CLI
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region ${{ secrets.AWS_REGION }}
+
+      # 3. Upload to S3
+      - name: Upload to S3
+        run: |
+          aws s3 cp laravel.zip s3://${{ secrets.S3_BUCKET_NAME }}/laravel.zip
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
+      # 4. Deploy to Elastic Beanstalk
       - name: Deploy to Elastic Beanstalk
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -98,11 +97,11 @@ jobs:
           EB_APP_NAME: ${{ secrets.EB_APP_NAME }}
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         run: |
-          VERSION_LABEL="${{ github.sha }}-$(date +%s)"
           aws elasticbeanstalk create-application-version \
             --application-name ${{ secrets.EB_APP_NAME }} \
-            --version-label $VERSION_LABEL \
-            --source-bundle S3Bucket=${{ secrets.S3_BUCKET_NAME }},S3Key=laravelpackCICD.zip
+            --version-label $GITHUB_SHA \
+            --source-bundle S3Bucket=${{ secrets.S3_BUCKET_NAME }},S3Key=laravel.zip
+
           aws elasticbeanstalk update-environment \
             --environment-name ${{ secrets.EB_ENV_NAME }} \
-            --version-label $VERSION_LABEL
+            --version-label $GITHUB_SHA
