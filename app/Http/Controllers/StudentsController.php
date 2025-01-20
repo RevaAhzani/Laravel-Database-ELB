@@ -14,7 +14,7 @@ class StudentsController extends Controller
 
     public function index(){
         $students = students::all();
-        return view("datasiswa", compact("students"));
+        return view("home", compact("students"));
     }
     
     public function create(){

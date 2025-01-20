@@ -1,2 +1,4 @@
 web: php artisan serve --host=0.0.0.0 --port=8000
 worker: npm run dev
+
+web: aws s3 cp s3://your-s3-bucket/.env /var/app/current/.env && php artisan config:cache && vendor/bin/heroku-php-apache2 public/

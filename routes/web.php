@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function() {
-    return redirect()->route('home');
+    return redirect()->route('login');
 });
 
 Route::get('/detail/{id}', [HomeController::class, 'show'])->name('detail');
@@ -19,4 +19,4 @@ Route::post('/update/{id}', [HomeController::class, 'update'])->name('update');
 Route::get('/delete/{id}', [HomeController::class, 'destroy'])->name('delete');
 Auth::routes(['verify' => true]);
 
-// Route::get('/dashboard', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
